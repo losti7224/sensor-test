@@ -3,84 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sensor Rohdaten</title>
+    <title>Sensor Virtual Space</title>
     <style>
-        body { font-family: monospace; padding: 20px; background: #111; color: #0f0; }
-        h1 { color: #fff; }
-        .sensor-block { margin-bottom: 20px; border: 1px solid #333; padding: 10px; }
-        button { padding: 10px 20px; font-size: 16px; background: #222; color: #fff; border: 1px solid #fff; cursor: pointer; }
-        button:hover { background: #333; }
+        /* Modernes, dunkles Design mit Glas-Effekten */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            color: #c9d1d9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 { color: #fff; font-size: 1.5rem; margin-bottom: 2rem; }
+
+        /* Der Button im Stil des Bildes */
+        .glass-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 2rem;
+        }
+
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .glass-button.recording {
+            background: rgba(255, 59, 48, 0.15); /* Dezentes Rot beim Recorden */
+            border-color: rgba(255, 59, 48, 0.3);
+        }
+
+        /* Die SVG-Kringel aus deinem Bild */
+        .icon { width: 20px; height: auto; }
+
+        /* Container für die Werte */
+        .info-container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .info-block {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .info-label {
+            font-size: 0.8rem;
+            color: #8b949e;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .info-value {
+            font-family: monospace;
+            font-size: 1.4rem;
+            color: #58a6ff;
+            word-wrap: break-word;
+        }
+
+        .warning {
+            color: #f85149;
+            font-size: 0.8rem;
+            margin-top: 2rem;
+            text-align: center;
+            opacity: 0.7;
+        }
+
     </style>
 </head>
 <body>
 
-    <h1>Sensor Rohdaten</h1>
+    <h1>Virtual Space (Proof-of-Concept)</h1>
     
-    <button id="request-btn">Sensoren aktivieren</button>
-    <p id="status">Status: Warte auf Aktivierung...</p>
+    <button id="main-btn" class="glass-button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path>
+            <path d="M12 8a4 4 0 1 1-4 4 4 4 0 0 1 4-4z"></path>
+        </svg>
+        <span id="btn-text">Start Space</span>
+    </button>
 
-    <div class="sensor-block">
-        <h3>Beschleunigung (inkl. Gravitation) [m/s²]</h3>
-        <p>X: <span id="acc-x">0.00</span></p>
-        <p>Y: <span id="acc-y">0.00</span></p>
-        <p>Z: <span id="acc-z">0.00</span></p>
+    <p id="status" style="display:none; color: #8b949e;">Status: Warte auf Permission...</p>
+
+    <div class="info-container">
+        <div class="info-block">
+            <div class="info-label">Aktuelle Position (X | Y | Z)</div>
+            <div class="info-value"><span id="pos-display">(0.00 | 0.00 | 0.00)</span> m</div>
+        </div>
+
+        <div class="info-block">
+            <div class="info-label">Gesamt zurückgelegte Strecke (Path)</div>
+            <div class="info-value"><span id="path-display">0.00</span> m</div>
+        </div>
+
+        <div class="info-block">
+            <div class="info-label">Entfernung zum Ursprung</div>
+            <div class="info-value"><span id="dist-display">0.00</span> m</div>
+        </div>
     </div>
 
-    <div class="sensor-block">
-        <h3>Drehgeschwindigkeit (Gyroskop) [°/s]</h3>
-        <p>Alpha (Z): <span id="gyro-alpha">0.00</span></p>
-        <p>Beta (X):  <span id="gyro-beta">0.00</span></p>
-        <p>Gamma (Y): <span id="gyro-gamma">0.00</span></p>
-    </div>
+    <p class="warning">
+        Hinweis: Dieses Beispiel nutzt Rohdaten ohne Schwerkraft-Filter.<br>
+        Der Positions-Drift ist extrem hoch (Meter pro Sekunde im Stillstand).<br>
+        Dient nur zur Demonstration der Logik.
+    </p>
 
     <script>
-        const requestBtn = document.getElementById('request-btn');
+        const mainBtn = document.getElementById('main-btn');
+        const btnText = document.getElementById('btn-text');
         const statusText = document.getElementById('status');
+        const posDisplay = document.getElementById('pos-display');
+        const pathDisplay = document.getElementById('path-display');
+        const distDisplay = document.getElementById('dist-display');
 
-        // Event-Listener für den Button
-        requestBtn.addEventListener('click', async () => {
-            // Prüfen, ob iOS Berechtigung erforderlich ist
+        let isRecording = false;
+        let lastTimestamp = 0;
+
+        // Zustandsspeicher (der "Virtual Space")
+        const state = {
+            posX: 0, posY: 0, posZ: 0, // Aktuelle Position
+            velX: 0, velY: 0, velZ: 0, // Aktuelle Geschwindigkeit
+            totalPath: 0,              // Zurückgelegte Gesamtstrecke
+        };
+
+        mainBtn.addEventListener('click', async () => {
+            // Permission anfordern (nur bei der ersten Interaktion nötig)
             if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
                 try {
                     const permissionState = await DeviceMotionEvent.requestPermission();
                     if (permissionState === 'granted') {
-                        initSensors();
-                        statusText.innerText = "Status: Aktiviert (iOS)";
-                        requestBtn.style.display = 'none';
+                        statusText.innerText = "Permission granted.";
+                        statusText.style.display = 'none';
+                        toggleRecording();
                     } else {
-                        statusText.innerText = "Status: Erlaubnis verweigert.";
+                        statusText.innerText = "Permission denied.";
+                        statusText.style.display = 'block';
                     }
                 } catch (error) {
                     statusText.innerText = "Fehler: " + error;
+                    statusText.style.display = 'block';
                 }
             } else {
-                // Android oder Desktop (braucht meist keine explizite Permission via Button)
-                initSensors();
-                statusText.innerText = "Status: Aktiviert";
-                requestBtn.style.display = 'none';
+                // Android/Desktop
+                toggleRecording();
             }
         });
 
-        function initSensors() {
-            // 1. Accelerometer (Beschleunigung)
-            window.addEventListener('devicemotion', (event) => {
-                const acc = event.accelerationIncludingGravity;
-                if (acc) {
-                    document.getElementById('acc-x').innerText = acc.x ? acc.x.toFixed(4) : "N/A";
-                    document.getElementById('acc-y').innerText = acc.y ? acc.y.toFixed(4) : "N/A";
-                    document.getElementById('acc-z').innerText = acc.z ? acc.z.toFixed(4) : "N/A";
-                }
-            });
+        function toggleRecording() {
+            if (isRecording) {
+                // STOP
+                isRecording = false;
+                btnText.innerText = "Start Space";
+                mainBtn.classList.remove('recording');
+                stopSensors();
+            } else {
+                // START (Reset)
+                isRecording = true;
+                btnText.innerText = "Stop & Hold";
+                mainBtn.classList.add('recording');
+                
+                // Reset State auf (0|0|0)
+                state.posX = 0; state.posY = 0; state.posZ = 0;
+                state.velX = 0; state.velY = 0; state.velZ = 0;
+                state.totalPath = 0;
+                lastTimestamp = performance.now();
+                
+                updateDisplay();
+                startSensors();
+            }
+        }
 
-            // 2. Gyroskop (Drehung)
-            window.addEventListener('deviceorientation', (event) => {
-                // alpha: Rotation um die Z-Achse (0-360)
-                // beta: Rotation um die X-Achse (-180-180)
-                // gamma: Rotation um die Y-Achse (-90-90)
-                document.getElementById('gyro-alpha').innerText = event.alpha ? event.alpha.toFixed(4) : "N/A";
-                document.getElementById('gyro-beta').innerText = event.beta ? event.beta.toFixed(4) : "N/A";
-                document.getElementById('gyro-gamma').innerText = event.gamma ? event.gamma.toFixed(4) : "N/A";
-            });
+        function handleMotion(event) {
+            if (!isRecording) return;
+
+            const now = performance.now();
+            const dt = (now - lastTimestamp) / 1000; // Zeitintervall in Sekunden
+            lastTimestamp = now;
+
+            // WICHTIG: Wir nutzen .acceleration, NICHT .accelerationIncludingGravity.
+            // .acceleration versucht, die Schwerkraft herauszurechnen, ist aber sehr ungenau.
+            const acc = event.acceleration;
+
+            if (acc && acc.x !== null) {
+                // 1. Beschleunigung bereinigen (Noise Floor: Kleine Werte ignorieren)
+                // Dies ist ein SEHR primitiver Filter, der aber etwas Drift rausnimmt.
+                const threshold = 0.15; // m/s²
+                const ax = Math.abs(acc.x) > threshold ? acc.x : 0;
+                const ay = Math.abs(acc.y) > threshold ? acc.y : 0;
+                const az = Math.abs(acc.z) > threshold ? acc.z : 0;
+
+                // 2. Integration 1: Geschwindigkeit berechnen (vel = acc * dt)
+                state.velX += ax * dt;
+                state.velY += ay * dt;
+                state.velZ += az * dt;
+
+                // 3. Integration 2: Position berechnen (pos = vel * dt)
+                const dx = state.velX * dt;
+                const dy = state.velY * dt;
+                const dz = state.velZ * dt;
+
+                state.posX += dx;
+                state.posY += dy;
+                state.posZ += dz;
+
+                // 4. Gesamtstrecke (Path)
+                // Die Entfernung, die wir in DIESEM Intervall zurückgelegt haben (Vektorlänge)
+                const stepDistance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                state.totalPath += stepDistance;
+
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            // Position
+            posDisplay.innerText = `(${state.posX.toFixed(2)} | ${state.posY.toFixed(2)} | ${state.posZ.toFixed(2)})`;
+            
+            // Gesamtstrecke
+            pathDisplay.innerText = state.totalPath.toFixed(2);
+            
+            // Entfernung zum Ursprung (Vektorlänge der aktuellen Position)
+            const originDist = Math.sqrt(state.posX*state.posX + state.posY*state.posY + state.posZ*state.posZ);
+            distDisplay.innerText = originDist.toFixed(2);
+        }
+
+        function startSensors() {
+            window.addEventListener('devicemotion', handleMotion);
+        }
+
+        function stopSensors() {
+            // Die Werte bleiben im Display stehen, da handleMotion nicht mehr aufgerufen wird.
+            window.removeEventListener('devicemotion', handleMotion);
         }
     </script>
 </body>
